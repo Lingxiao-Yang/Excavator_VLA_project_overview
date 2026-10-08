@@ -1,0 +1,13 @@
+[project]
+name = "excavator-vla-demo"
+version = "0.1.0"
+description = "Showcase re-implementation of the ME 450 Group 19 Excavator VLA pipeline"
+requires-python = ">=3.10"
+dependencies = ["numpy>=1.24"]
+
+[project.optional-dependencies]
+examples = ["matplotlib>=3.7"]
+policy = ["torch", "lerobot[smolvla]", "safetensors", "pillow"]
+
+[tool.setuptools.packages.find]
+include = ["excavator_vla*"]

@@ -1,0 +1,40 @@
+# SmolVLA fine-tuning chain that produced the deployed checkpoint (018450).
+# Values from the final report (Table 6-3) and the training launchers.
+
+base_policy: lerobot/smolvla_base
+vlm: HuggingFaceTB/SmolVLM2-500M-Video-Instruct     # used from a local offline copy
+freeze_vision_encoder: true
+
+input_features:
+  observation.state:    { type: STATE,  shape: [28] }
+  observation.effort:   { type: STATE,  shape: [4] }
+  observation.images.0: { type: VISUAL, shape: [3, 256, 256] }   # bucket / arm camera
+  observation.images.1: { type: VISUAL, shape: [3, 256, 256] }   # cab forward
+  observation.images.2: { type: VISUAL, shape: [3, 256, 256] }   # elevated overhead
+output_features:
+  action:               { type: ACTION, shape: [4] }             # [swing, boom, arm, bucket] rad/s
+
+chunk_size: 50
+n_action_steps: 50
+fps: 10
+
+optimizer: { type: adamw, lr: 5.0e-5 }
+batch_size: 144
+
+aux_losses:
+  stage_loss_weight: 0.5
+  stage_exception_weight: 10.0
+  stage_action_loss_weight: 0.20        # direction prior
+  stage_action_low_motion_weight: 0.5
+  stage_action_low_motion_margin: 0.10
+
+stages:
+  - name: broad
+    data: 567 episodes / 61,406 frames / 18 task prompts (randomized scenes)
+    checkpoints: [pretrained, 3840, 16650]
+  - name: fixed_scene_refinement
+    data: 5 seed-2 episodes / 810 frames      # 6 steps per epoch at batch 144
+    resume_from: 16650
+    epochs: 300                               # +1800 steps
+    save_every_epochs: 50
+    checkpoints: [18450]                      # <- deployed

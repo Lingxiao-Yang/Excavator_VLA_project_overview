@@ -1,0 +1,33 @@
+{
+  "fps": 10.0,
+  "codec": "mp4v",
+  "frames_written_per_camera": 300,
+  "first_policy_step": 0,
+  "last_policy_step": 299,
+  "encoded_duration_seconds": 30.0,
+  "warmup_included": false,
+  "camera_files": {
+    "0": "/root/gpufree-data/excavator_isaacsim_eval/isaacsim_seed2_ckpt18450_replan3_ensemble1_supervisor1_300steps_20260727_224304/videos/camera_0.mp4",
+    "1": "/root/gpufree-data/excavator_isaacsim_eval/isaacsim_seed2_ckpt18450_replan3_ensemble1_supervisor1_300steps_20260727_224304/videos/camera_1.mp4",
+    "2": "/root/gpufree-data/excavator_isaacsim_eval/isaacsim_seed2_ckpt18450_replan3_ensemble1_supervisor1_300steps_20260727_224304/videos/camera_2.mp4",
+    "overview": "/root/gpufree-data/excavator_isaacsim_eval/isaacsim_seed2_ckpt18450_replan3_ensemble1_supervisor1_300steps_20260727_224304/videos/camera_overview.mp4"
+  },
+  "frame_sizes": {
+    "0": [
+      256,
+      256
+    ],
+    "1": [
+      256,
+      256
+    ],
+    "2": [
+      256,
+      256
+    ],
+    "overview": [
+      1024,
+      1024
+    ]
+  }
+}

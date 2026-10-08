@@ -1,0 +1,12 @@
+{
+  "_comment": "Fixed evaluation scene used for the Design Expo demo and the 200-episode success-rate run. Values are the CLI arguments of the canonical deploy launcher.",
+  "scene_seed": 2,
+  "sand_amount": 10.0,
+  "sand_parameter_mode": "legacy",
+  "sand_settle_frames": 60,
+  "robot_initial_joints_deg": { "swing": 40, "boom": 46, "arm": -62, "bucket": -20 },
+  "expected_initial_base": { "x": -6.9507, "y": 2.2326, "yaw": 0.0 },
+  "dig_target_world": [-0.9083, 7.2250, 0.2896],
+  "unload_target_world": [-9.0968, -0.9592, 4.2227],
+  "task_text": "Excavate one scoop of sand from the sand pile in front of the excavator's initial base pose, then carry and dump the collected material into the truck bed to the right of the excavator's initial base pose."
+}

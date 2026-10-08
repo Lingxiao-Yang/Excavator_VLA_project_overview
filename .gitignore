@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+.venv/
+.vscode/
+.idea/
+outputs/
+runs/
+excavator_auto_dataset/
+lerobot_v3*/
+checkpoints/
+*.safetensors
+*.tar.gz

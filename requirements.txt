@@ -1,0 +1,9 @@
+# Runnable demo parts (tests, examples)
+numpy>=1.24
+matplotlib>=3.7
+
+# Full pipeline (not needed for the demo; versions used in the project environment)
+# torch>=2.2            # smolvla env
+# lerobot[smolvla]      # SmolVLA + LeRobot v3 datasets
+# safetensors, pillow
+# NVIDIA Isaac Sim 4.x  # separate bundled Python: /isaac-sim/python.sh

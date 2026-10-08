@@ -1,0 +1,606 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Excavator VLA</title>
+<meta name="description" content="Autonomous excavation and loading in Isaac Sim with a fine-tuned SmolVLA Vision-Language-Action model. ME 450 Capstone, Group 19, Global College, Shanghai Jiao Tong University.">
+<meta property="og:title" content="Excavator VLA: Autonomous Excavation and Loading with a Vision-Language-Action Model">
+<meta property="og:description" content="A simulated excavator that digs and loads a truck from three cameras and a text instruction. 83.5% closed-loop success over 200 episodes.">
+<meta property="og:image" content="media/figures/10_closed_loop_demo_overhead.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #fbfaf7;
+    --surface: #ffffff;
+    --surface-2: #f3f1ec;
+    --text: #1d1b18;
+    --muted: #5f5a52;
+    --border: #e4e0d8;
+    --accent: #c2410c;
+    --accent-soft: #fdeee4;
+    --ok: #15803d;
+    --warn-bg: #fff7e6;
+    --warn-border: #f0c36d;
+    --shadow: 0 1px 2px rgba(0,0,0,.04), 0 4px 16px rgba(0,0,0,.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #141311;
+      --surface: #1c1b18;
+      --surface-2: #24221f;
+      --text: #ece9e3;
+      --muted: #a8a299;
+      --border: #34312c;
+      --accent: #fb923c;
+      --accent-soft: #3a2416;
+      --ok: #4ade80;
+      --warn-bg: #2d2412;
+      --warn-border: #7a5a1c;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.3);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #141311;
+    --surface: #1c1b18;
+    --surface-2: #24221f;
+    --text: #ece9e3;
+    --muted: #a8a299;
+    --border: #34312c;
+    --accent: #fb923c;
+    --accent-soft: #3a2416;
+    --ok: #4ade80;
+    --warn-bg: #2d2412;
+    --warn-border: #7a5a1c;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.3);
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    overflow-x: hidden;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.65 Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  img, video { max-width: 100%; display: block; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code, .mono { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: .88em; }
+
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 16px; }
+  .narrow { max-width: 760px; margin: 0 auto; }
+
+  /* ---------- nav ---------- */
+  nav.top {
+    position: sticky; top: 0; z-index: 10;
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+  }
+  nav.top .wrap { display: flex; align-items: center; gap: 20px; height: 52px; }
+  nav.top .brand { font-weight: 700; color: var(--text); white-space: nowrap; }
+  nav.top .links { display: flex; gap: 18px; overflow-x: auto; scrollbar-width: none; flex: 1; min-width: 0; }
+  nav.top .links::-webkit-scrollbar { display: none; }
+  nav.top .links a { color: var(--muted); font-size: 14px; white-space: nowrap; }
+  nav.top .links a:hover { color: var(--text); text-decoration: none; }
+  #theme {
+    border: 1px solid var(--border); background: var(--surface); color: var(--muted);
+    border-radius: 8px; width: 34px; height: 34px; cursor: pointer; font-size: 16px; flex: none;
+  }
+
+  /* ---------- hero ---------- */
+  header.hero { padding: 56px 0 24px; text-align: center; }
+  .venue {
+    display: inline-block; font-size: 13px; font-weight: 600; letter-spacing: .04em;
+    color: var(--accent); background: var(--accent-soft); padding: 4px 12px; border-radius: 999px;
+  }
+  h1 {
+    font-size: clamp(28px, 5vw, 44px); line-height: 1.15; margin: 18px auto 14px; max-width: 880px;
+    letter-spacing: -.02em;
+  }
+  .authors { font-size: 17px; margin: 0 0 4px; }
+  .authors span { white-space: nowrap; }
+  .affil { color: var(--muted); font-size: 14px; margin: 0; }
+  .buttons { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin: 24px 0 8px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px; padding: 9px 16px; border-radius: 999px;
+    background: var(--text); color: var(--bg); font-weight: 600; font-size: 14px;
+  }
+  .btn.secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+  .btn:hover { text-decoration: none; opacity: .88; }
+  .btn svg { width: 16px; height: 16px; }
+
+  .teaser { margin: 28px auto 0; }
+  .teaser video {
+    width: 100%; border-radius: 14px; box-shadow: var(--shadow); background: #000; aspect-ratio: 1 / 1;
+    max-height: 560px; object-fit: cover; margin: 0 auto;
+  }
+  .caption { color: var(--muted); font-size: 14px; margin: 10px auto 0; max-width: 760px; text-align: center; }
+
+  /* ---------- sections ---------- */
+  section { padding: 48px 0; border-top: 1px solid var(--border); }
+  h2 { font-size: 26px; letter-spacing: -.01em; margin: 0 0 18px; text-align: center; }
+  h3 { font-size: 18px; margin: 28px 0 8px; }
+  p { margin: 0 0 14px; }
+  .lead { font-size: 17px; }
+
+  /* stats */
+  .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 28px 0 0; }
+  .stat {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px;
+    text-align: center;
+  }
+  .stat .v { font-size: 28px; font-weight: 700; letter-spacing: -.02em; color: var(--accent); }
+  .stat .l { font-size: 13px; color: var(--muted); line-height: 1.4; }
+
+  /* pipeline */
+  .pipeline { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 8px; }
+  .stage {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px;
+    position: relative;
+  }
+  .stage .n {
+    font-size: 12px; font-weight: 700; color: var(--accent); letter-spacing: .06em; text-transform: uppercase;
+  }
+  .stage h3 { margin: 4px 0 8px; }
+  .stage p { font-size: 14.5px; color: var(--muted); margin: 0; }
+  .stage ul { margin: 10px 0 0; padding-left: 18px; font-size: 14px; color: var(--muted); }
+
+  /* figures */
+  figure { margin: 0; }
+  figure img { border-radius: 10px; border: 1px solid var(--border); background: var(--surface); width: 100%; }
+  figcaption { color: var(--muted); font-size: 13.5px; margin-top: 8px; line-height: 1.5; }
+  .grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+  .grid-2 > * { min-width: 0; }
+  .fig-wide { margin: 24px 0; }
+
+  /* camera grid */
+  .cams { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 10px; align-items: stretch; }
+  .cams .side { display: grid; grid-template-rows: repeat(3, 1fr); gap: 10px; }
+  .cam { position: relative; border-radius: 10px; overflow: hidden; background: #000; }
+  .cam video { width: 100%; height: 100%; object-fit: cover; }
+  .cam .tag {
+    position: absolute; left: 8px; top: 8px; background: rgba(0,0,0,.6); color: #fff;
+    font-size: 11.5px; padding: 2px 8px; border-radius: 6px; font-family: "JetBrains Mono", monospace;
+  }
+  .controls { display: flex; gap: 10px; justify-content: center; margin-top: 12px; align-items: center; flex-wrap: wrap; }
+  .controls button {
+    border: 1px solid var(--border); background: var(--surface); color: var(--text); padding: 6px 14px;
+    border-radius: 999px; cursor: pointer; font: 500 13px Inter, sans-serif;
+  }
+  .controls input[type=range] { width: min(320px, 60vw); accent-color: var(--accent); }
+
+  /* tables */
+  .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
+  table { width: 100%; border-collapse: collapse; font-size: 14.5px; }
+  th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  th { background: var(--surface-2); font-weight: 600; font-size: 13px; color: var(--muted); }
+  tr:last-child td { border-bottom: 0; }
+  td.ok { color: var(--ok); font-weight: 600; }
+  td.num { font-variant-numeric: tabular-nums; }
+
+  .note {
+    background: var(--warn-bg); border: 1px solid var(--warn-border); border-radius: 12px;
+    padding: 14px 16px; font-size: 14.5px; margin: 20px 0 0;
+  }
+  .note strong { display: block; margin-bottom: 2px; }
+
+  /* stage strip */
+  .stages { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin: 12px 0 4px; }
+  .stages span {
+    font: 12px "JetBrains Mono", monospace; background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: 6px; padding: 3px 8px; color: var(--muted);
+  }
+
+  pre {
+    background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px;
+    overflow-x: auto; font-size: 13px; line-height: 1.55; margin: 12px 0 0;
+  }
+
+  /* team */
+  .team { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
+  .member { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+  .member .name { font-weight: 600; font-size: 15px; }
+  .member .role { color: var(--muted); font-size: 13px; line-height: 1.45; margin-top: 4px; }
+
+  footer { padding: 32px 0 48px; color: var(--muted); font-size: 13.5px; text-align: center; border-top: 1px solid var(--border); }
+
+  @media (max-width: 860px) {
+    .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .pipeline { grid-template-columns: minmax(0, 1fr); }
+    .team { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  @media (max-width: 640px) {
+    header.hero { padding-top: 36px; }
+    .grid-2 { grid-template-columns: minmax(0, 1fr); }
+    .cams { grid-template-columns: minmax(0, 1fr); }
+    .cams .side { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: none; }
+    .cam .tag { font-size: 10px; padding: 1px 5px; }
+    .venue { font-size: 11.5px; }
+    nav.top .wrap { gap: 12px; }
+    section { padding: 36px 0; }
+    th, td { padding: 8px 10px; }
+  }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+</style>
+</head>
+<body>
+
+<nav class="top">
+  <div class="wrap">
+    <a class="brand" href="#">Excavator VLA</a>
+    <div class="links">
+      <a href="#abstract">Abstract</a>
+      <a href="#rollout">Rollout</a>
+      <a href="#method">Method</a>
+      <a href="#results">Results</a>
+      <a href="#design">Design</a>
+      <a href="#team">Team</a>
+    </div>
+    <button id="theme" type="button" aria-label="Toggle color theme" title="Toggle color theme">◐</button>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <span class="venue">ME 450 CAPSTONE DESIGN · GROUP 19 · SUMMER 2026</span>
+    <h1>Excavator VLA: Autonomous Excavation and Loading with a Vision-Language-Action Model</h1>
+    <p class="authors">
+      <span>Lingxiao Yang</span> · <span>Xirui Jiang</span> · <span>Haoyun Pan</span> ·
+      <span>Runting Zhang</span> · <span>Seak Pang Zou</span>
+    </p>
+    <p class="affil">Global College, Shanghai Jiao Tong University · Sponsored by Builder[x] Robotics</p>
+    <p class="affil">Industry mentor: Shiji Liu · Faculty supervisor: Prof. Qianli Chen</p>
+
+    <div class="buttons">
+      <a class="btn" href="https://github.com/Lingxiao-Yang/Excavator_VLA_project_overview">
+        <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        Code
+      </a>
+      <a class="btn secondary" href="https://github.com/Lingxiao-Yang/Excavator_VLA_project_overview/blob/main/docs/results.md">Results</a>
+      <a class="btn secondary" href="https://github.com/Lingxiao-Yang/Excavator_VLA_project_overview/blob/main/docs/dataset_contract.md">Dataset contract</a>
+      <a class="btn secondary" href="media/eval_4view.mp4">Video</a>
+    </div>
+
+    <div class="teaser narrow">
+      <video src="media/eval_overview.mp4" poster="media/figures/10_closed_loop_demo_overhead.jpg"
+             autoplay muted loop playsinline preload="metadata" aria-label="Closed-loop rollout, overview camera"></video>
+      <p class="caption">Closed-loop rollout of the fine-tuned policy (checkpoint 18450, evaluation scene seed 2).
+        The excavator digs from the pile and deposits material into the haul truck using only its onboard cameras,
+        its 28D state and a natural-language instruction.</p>
+    </div>
+  </div>
+</header>
+
+<section id="abstract">
+  <div class="wrap narrow">
+    <h2>Abstract</h2>
+    <p class="lead">
+      Teleoperated excavation removes operators from hazardous worksites, but it reaches only about 70% of
+      on-site productivity and still requires continuous expert attention. We present a simulation-based
+      autonomous excavator that perceives its worksite through three onboard cameras, receives a
+      natural-language instruction, and completes a full dig, transfer and dump cycle into a haul truck.
+    </p>
+    <p>
+      The controller is <strong>SmolVLA</strong>, a compact Vision-Language-Action model with a
+      SmolVLM2-500M backbone and a flow-matching action expert. We fine-tune it on 572 demonstrations
+      generated automatically by a privileged scripted expert in NVIDIA Isaac Sim, where granular material is
+      modelled as PhysX particles. We augment training with a stage-classification head and stage-conditioned
+      auxiliary losses. The policy is deployed through a deterministic lockstep bridge that validates the
+      observation contract before any motion. The deployed system meets all eight engineering
+      specifications and achieves <strong>83.5% success over 200 closed-loop episodes</strong>, with a
+      mean cycle time of 195 s.
+    </p>
+    <div class="stats">
+      <div class="stat"><div class="v">83.5%</div><div class="l">closed-loop success<br>(167 / 200 episodes)</div></div>
+      <div class="stat"><div class="v">572</div><div class="l">accepted expert episodes<br>(62,216 frames)</div></div>
+      <div class="stat"><div class="v">6.47 ms</div><div class="l">median policy-client<br>latency</div></div>
+      <div class="stat"><div class="v">195 s</div><div class="l">mean cycle time<br>(target ≤ 210 s)</div></div>
+    </div>
+  </div>
+</section>
+
+<section id="rollout">
+  <div class="wrap">
+    <h2>What the policy sees</h2>
+    <p class="caption" style="margin-bottom:20px">The policy observes three 256 × 256 cameras: one on the arm and two on the
+      upper structure. The 1024² overview camera is recorded for visualization only. All four streams are
+      synchronized to the 10 Hz control loop.</p>
+    <div class="cams">
+      <div class="cam"><span class="tag">overview · 1024² · not a policy input</span>
+        <video class="sync" src="media/eval_overview.mp4" muted playsinline preload="metadata"></video></div>
+      <div class="side">
+        <div class="cam"><span class="tag">cam 0 · arm</span><video class="sync" src="media/eval_camera_0.mp4" muted playsinline preload="metadata"></video></div>
+        <div class="cam"><span class="tag">cam 1 · forward</span><video class="sync" src="media/eval_camera_1.mp4" muted playsinline preload="metadata"></video></div>
+        <div class="cam"><span class="tag">cam 2 · overhead</span><video class="sync" src="media/eval_camera_2.mp4" muted playsinline preload="metadata"></video></div>
+      </div>
+    </div>
+    <div class="controls">
+      <button id="play" type="button">Play</button>
+      <input id="scrub" type="range" min="0" max="1000" value="0" aria-label="Seek all videos">
+      <span id="time" class="mono" style="color:var(--muted);font-size:13px">0.0 s</span>
+    </div>
+  </div>
+</section>
+
+<section id="method">
+  <div class="wrap">
+    <h2>Method</h2>
+    <div class="pipeline">
+      <div class="stage">
+        <div class="n">01 · Demonstrations</div>
+        <h3>Privileged scripted expert</h3>
+        <p>Scenes are randomized (pile, truck, yaw, material quantity). The expert ranks dig points over the particle
+          field, solves analytic IK through a ten-stage scoop, and routes the loaded bucket around the truck.</p>
+        <ul>
+          <li>Reproducible per-worker seeding</li>
+          <li>Scene, planning and post-execution quality gates</li>
+          <li>Parallel headless Isaac Sim workers</li>
+        </ul>
+      </div>
+      <div class="stage">
+        <div class="n">02 · Policy learning</div>
+        <h3>SmolVLA fine-tuning</h3>
+        <p>Three RGB views, a 28D state, 4D joint effort and the instruction map to a 50 × 4 chunk of joint
+          velocities. The vision encoder is frozen; the action expert and state projection are trained.</p>
+        <ul>
+          <li>Stage-classification head</li>
+          <li>Stage-conditioned direction prior</li>
+          <li>Swing penalty while digging</li>
+        </ul>
+      </div>
+      <div class="stage">
+        <div class="n">03 · Deployment</div>
+        <h3>Deterministic lockstep bridge</h3>
+        <p>The simulator pauses during inference, so latency never accrues as simulated time. A versioned handshake
+          validates names, dimensions, rate and normalization statistics before motion.</p>
+        <ul>
+          <li>Replanning every three steps</li>
+          <li>60 Hz physics, 10 Hz control</li>
+          <li>Full per-step trace logging</li>
+        </ul>
+      </div>
+    </div>
+
+    <figure class="fig-wide">
+      <img src="media/figures/01_system_architecture_diagram.png" alt="System architecture: the scripted expert generates demonstrations used to fine-tune the VLA policy, which controls the excavator in Isaac Sim" loading="lazy">
+      <figcaption>System architecture. A single interface serves both modes: the scripted expert records demonstrations
+        with privileged state, and the VLA closes the loop with the same camera names, state ordering, action
+        convention and control interval.</figcaption>
+    </figure>
+
+    <h3>Ten-stage scoop</h3>
+    <p>The expert's motion is decomposed into ten canonical stages. Their labels supervise the auxiliary stage head
+      but are never given to the policy as input.</p>
+    <div class="stages">
+      <span>0 pre_dig</span><span>1 approach_contact</span><span>2 insert_cut</span><span>3 pull_mid_cut</span>
+      <span>4 curl_to_hold_material</span><span>5 pull_exit_cut</span><span>6 secure_load</span>
+      <span>7 lift_carry</span><span>8 loaded_transit</span><span>9 unload_to_bin</span>
+    </div>
+
+    <div class="grid-2" style="margin-top:24px">
+      <figure>
+        <img src="media/figures/03_isaac_sim_worksite_overview.jpg" alt="Isaac Sim construction site with excavator, pile and truck" loading="lazy">
+        <figcaption>Simulated worksite in Isaac Sim with GPU PhysX.</figcaption>
+      </figure>
+      <figure>
+        <img src="media/figures/06_particle_material_pile.png" alt="PhysX particle material pile" loading="lazy">
+        <figcaption>Granular material as a PhysX particle system (45,000 particles, "Soft Dig" preset).</figcaption>
+      </figure>
+      <figure>
+        <img src="media/figures/02_scripted_expert_data_pipeline.png" alt="Scripted expert pipeline with quality gate and retry loop" loading="lazy">
+        <figcaption>Demonstration pipeline: randomize, select targets, plan, execute and record, check quality, export.</figcaption>
+      </figure>
+      <figure>
+        <img src="media/figures/07_dataset_pile_truck_coverage.png" alt="Coverage of randomized pile and truck positions" loading="lazy">
+        <figcaption>Coverage of randomized pile and truck positions across the dataset.</figcaption>
+      </figure>
+    </div>
+
+    <h3>Observation: 28D state in the upper-structure frame</h3>
+    <p>All spatial terms are expressed relative to the excavator's upper structure. This makes the state invariant to
+      the parking position and initial heading of the excavator.</p>
+<pre><code>[ 0– 3] joint positions            swing, boom, arm, bucket       rad
+[ 4– 7] joint velocities                                          rad/s
+[ 8–11] tracking error             commanded − measured           rad
+[12–15] previous action                                           rad/s
+[16–17] bucket pour axis           forward, up                    unit
+[18–20] dig target − bucket tip    forward, left, up              m
+[21–23] unload point − load point  forward, left, up              m
+[24–25] truck heading (relative)   sin, cos
+[26–27] bucket fill fraction, fill rate</code></pre>
+
+    <div class="grid-2" style="margin-top:24px">
+      <figure>
+        <img src="media/figures/08_training_loss_broad_stage.png" alt="Broad-stage training losses" loading="lazy">
+        <figcaption>Broad training on 567 episodes (checkpoints 3,840 → 16,650).</figcaption>
+      </figure>
+      <figure>
+        <img src="media/figures/09_training_loss_fixed_scene_refinement.png" alt="Fixed-scene refinement losses" loading="lazy">
+        <figcaption>Fixed-scene refinement (16,650 → 18,450). AdamW, learning rate 5 × 10⁻⁵, batch size 144.</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<section id="results">
+  <div class="wrap">
+    <h2>Results</h2>
+    <p class="caption" style="margin-bottom:20px">All eight engineering specifications are met (final report, Table 7-1).</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>ID</th><th>Specification</th><th>Target</th><th>Achieved</th></tr></thead>
+        <tbody>
+          <tr><td>ES1</td><td>Controllable task joints</td><td class="num">4</td><td class="ok">4</td></tr>
+          <tr><td>ES2</td><td>Closed-loop control frequency</td><td class="num">&gt; 2 Hz</td><td class="ok">2.1 – 4.0 Hz</td></tr>
+          <tr><td>ES3</td><td>Policy-client response latency</td><td class="num">≤ 10 ms</td><td class="ok">6.47 ms (median)</td></tr>
+          <tr><td>ES4</td><td>Simulation runtime performance</td><td class="num">≥ 15 FPS</td><td class="ok">≥ 30 FPS</td></tr>
+          <tr><td>ES5</td><td>Material interaction level</td><td class="num">≥ Level 2</td><td class="ok">Level 3</td></tr>
+          <tr><td>ES6</td><td>Valid demonstration trajectories</td><td class="num">≥ 50</td><td class="ok">572</td></tr>
+          <tr><td>ES7</td><td>Mean cycle time</td><td class="num">≤ 210 s</td><td class="ok">195.04 s</td></tr>
+          <tr><td>ES8</td><td>Autonomous success rate</td><td class="num">≥ 60%</td><td class="ok">83.5% (167 / 200)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note">
+      <strong>Evaluation conditions</strong>
+      The success rate was measured with a bounded, deterministic execution supervisor enabled. The supervisor commits to
+      the cut, curls before lifting, and completes the swing and dump once a load is confirmed. The figure therefore
+      characterises the deployed VLA system rather than the policy in isolation. Success requires at least one particle
+      deposited in the truck bed, and evaluation is in-domain with one dig cycle per episode.
+    </div>
+
+    <div class="grid-2" style="margin-top:28px">
+      <div>
+        <h3 style="margin-top:0">Time to success (167 episodes)</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Min</th><th>Mean</th><th>Median</th><th>p95</th><th>Max</th></tr></thead>
+            <tbody><tr class="num"><td>142.7 s</td><td>195.0 s</td><td>177.2 s</td><td>261.0 s</td><td>269.1 s</td></tr></tbody>
+          </table>
+        </div>
+        <p class="caption" style="text-align:left">Measured from simulation launch, including scene loading and camera warm-up.</p>
+      </div>
+      <div>
+        <h3 style="margin-top:0">Control-step timing (NVIDIA L40S)</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Component</th><th>Time</th><th>Share</th></tr></thead>
+            <tbody>
+              <tr><td>Physics (6 steps)</td><td class="num">≈ 33 ms</td><td class="num">≈ 10%</td></tr>
+              <tr><td><strong>3-camera rendering</strong></td><td class="num"><strong>200 – 400 ms</strong></td><td class="num"><strong>70 – 80%</strong></td></tr>
+              <tr><td>Encoding and TCP</td><td class="num">7 – 20 ms</td><td class="num">≈ 4%</td></tr>
+              <tr><td>Policy inference</td><td class="num">2 – 3 ms</td><td class="num">&lt; 1%</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <figure class="fig-wide">
+      <img src="media/eval_contact_sheet.jpg" alt="Rollout keyframes at three-second intervals" loading="lazy">
+      <figcaption>Rollout keyframes at 3 s intervals: approach, cut, lift, swing toward the truck and dump.</figcaption>
+    </figure>
+
+    <h3>Limitations and future work</h3>
+    <p>Evaluation is in-domain, covers a single excavation cycle, and uses a permissive success criterion that does not
+      score payload or spillage. The particle model is not calibrated against terramechanics, and hydraulics and
+      sim-to-real transfer are out of scope. Future work includes held-out visual and geometric domains, mass-based
+      success metrics with failure-stage logging, multi-cycle demonstrations with recovery, a short observation history
+      that would allow removing the supervisor, and reinforcement-learning fine-tuning.</p>
+  </div>
+</section>
+
+<section id="design">
+  <div class="wrap">
+    <h2>Design process</h2>
+    <div class="narrow">
+      <p>Customer requirements were translated into engineering specifications through QFD, with autonomous success
+        rate ranked as the highest priority (normalized weight 0.34). A morphological chart over simulator, control
+        strategy, data source and material model produced five concepts. The selected concept, <strong>Isaac Sim with
+        an end-to-end VLA, a scripted expert and particle material</strong>, scored highest (3.65 of 4). It was the
+        only candidate strong in VLA-compatible I/O, automated demonstration generation and material transfer alike.</p>
+    </div>
+    <div class="table-wrap" style="margin-top:16px">
+      <table>
+        <thead><tr><th>Concept</th><th>Simulator</th><th>Control</th><th>Data</th><th>Material</th><th>Score</th></tr></thead>
+        <tbody>
+          <tr><td>C1</td><td>MuJoCo</td><td>Hierarchical</td><td>Scripted expert</td><td>Height map</td><td class="num">3.22</td></tr>
+          <tr><td>C2</td><td>Unity</td><td>End-to-end</td><td>Teleoperation</td><td>Height map</td><td class="num">2.00</td></tr>
+          <tr><td><strong>C3</strong></td><td><strong>Isaac Sim</strong></td><td><strong>End-to-end VLA</strong></td><td><strong>Scripted expert</strong></td><td><strong>Particles</strong></td><td class="ok">3.65</td></tr>
+          <tr><td>C4</td><td>Isaac Sim</td><td>Hierarchical</td><td>Expert + bucket specialist</td><td>Particles</td><td class="num">3.27</td></tr>
+          <tr><td>C5</td><td>Isaac Sim</td><td>End-to-end</td><td>Scripted expert</td><td>Rigid blocks</td><td class="num">2.61</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="grid-2" style="margin-top:24px">
+      <figure>
+        <img src="media/figures/13_qfd_house_of_quality.png" alt="QFD house of quality" loading="lazy">
+        <figcaption>QFD house of quality.</figcaption>
+      </figure>
+      <figure>
+        <img src="media/figures/14_gantt_chart.png" alt="Project schedule" loading="lazy">
+        <figcaption>Thirteen-week schedule across four design reviews and the Design Expo.</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<section id="team">
+  <div class="wrap">
+    <h2>Team</h2>
+    <div class="team">
+      <div class="member"><div class="name">Lingxiao Yang</div><div class="role">Terrain and material interaction; soil simulation</div></div>
+      <div class="member"><div class="name">Xirui Jiang</div><div class="role">Scene setup; simulator–backend communication; VLA adaptation and training</div></div>
+      <div class="member"><div class="name">Haoyun Pan</div><div class="role">Documentation and reporting; server maintenance</div></div>
+      <div class="member"><div class="name">Runting Zhang</div><div class="role">VLA training and evaluation</div></div>
+      <div class="member"><div class="name">Seak Pang Zou</div><div class="role">Scripted expert design; IK and control; trajectory generation</div></div>
+    </div>
+    <p class="caption" style="margin-top:20px">We thank Builder[x] Robotics and Shiji Liu for sponsoring and guiding the project, and
+      Prof. Qianli Chen for faculty supervision.</p>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    ME 450 Capstone Design · Group 19 · Global College, Shanghai Jiao Tong University · 2026<br>
+    Built with <a href="https://developer.nvidia.com/isaac/sim">NVIDIA Isaac Sim</a>,
+    <a href="https://github.com/huggingface/lerobot">LeRobot</a> and
+    <a href="https://huggingface.co/lerobot/smolvla_base">SmolVLA</a>.
+  </div>
+</footer>
+
+<script>
+  // Theme toggle (remembered per browser when storage is available)
+  (function () {
+    const root = document.documentElement;
+    try { const t = localStorage.getItem("theme"); if (t) root.dataset.theme = t; } catch (e) {}
+    document.getElementById("theme").addEventListener("click", function () {
+      const dark = root.dataset.theme ? root.dataset.theme === "dark"
+                                      : matchMedia("(prefers-color-scheme: dark)").matches;
+      root.dataset.theme = dark ? "light" : "dark";
+      try { localStorage.setItem("theme", root.dataset.theme); } catch (e) {}
+    });
+  })();
+
+  // Synchronized four-camera player: the overview video is the clock, the others follow it.
+  (function () {
+    const vids = Array.from(document.querySelectorAll("video.sync"));
+    if (!vids.length) return;
+    const master = vids[0], followers = vids.slice(1);
+    const play = document.getElementById("play"), scrub = document.getElementById("scrub"), time = document.getElementById("time");
+    let dragging = false;
+
+    function setAll(t) { vids.forEach(v => { try { v.currentTime = t; } catch (e) {} }); }
+    play.addEventListener("click", function () {
+      if (master.paused) { vids.forEach(v => v.play().catch(() => {})); play.textContent = "Pause"; }
+      else { vids.forEach(v => v.pause()); play.textContent = "Play"; }
+    });
+    scrub.addEventListener("input", function () {
+      dragging = true;
+      if (master.duration) setAll(master.duration * scrub.value / 1000);
+    });
+    scrub.addEventListener("change", function () { dragging = false; });
+    master.addEventListener("timeupdate", function () {
+      if (!master.duration) return;
+      if (!dragging) scrub.value = Math.round(1000 * master.currentTime / master.duration);
+      time.textContent = master.currentTime.toFixed(1) + " s";
+      followers.forEach(v => { if (Math.abs(v.currentTime - master.currentTime) > 0.15) v.currentTime = master.currentTime; });
+    });
+    master.addEventListener("ended", function () { setAll(0); vids.forEach(v => v.play().catch(() => {})); });
+    // Start the synchronized player when it scrolls into view
+    if ("IntersectionObserver" in window) {
+      new IntersectionObserver(function (entries, obs) {
+        if (entries[0].isIntersecting) { vids.forEach(v => v.play().catch(() => {})); play.textContent = "Pause"; obs.disconnect(); }
+      }, { threshold: 0.4 }).observe(master);
+    }
+  })();
+</script>
+</body>
+</html>
