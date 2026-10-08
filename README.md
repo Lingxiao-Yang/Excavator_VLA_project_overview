@@ -3,7 +3,7 @@
 **ME 450 Capstone Design · Group 19 · Global College, Shanghai Jiao Tong University · Summer 2026**<br>
 Sponsor: **Builder[x] Robotics** · Industry mentor: Shiji Liu · Faculty supervisor: Prof. Qianli Chen
 
-**Project page:** [`index.html`](index.html). Open it locally, or enable GitHub Pages for this repository.
+**Project page:** [https://lingxiao-yang.github.io/Excavator_VLA_project_overview/](https://lingxiao-yang.github.io/Excavator_VLA_project_overview/).
 
 We present a simulation-based autonomous excavator that perceives its worksite through three
 onboard cameras, receives a natural-language instruction, and completes a full **dig, transfer and
