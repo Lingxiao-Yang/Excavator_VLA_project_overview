@@ -202,18 +202,12 @@
     overflow-x: auto; font-size: 13px; line-height: 1.55; margin: 12px 0 0;
   }
 
-  /* team */
-  .team { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
-  .member { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
-  .member .name { font-weight: 600; font-size: 15px; }
-  .member .role { color: var(--muted); font-size: 13px; line-height: 1.45; margin-top: 4px; }
 
   footer { padding: 32px 0 48px; color: var(--muted); font-size: 13.5px; text-align: center; border-top: 1px solid var(--border); }
 
   @media (max-width: 860px) {
     .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .pipeline { grid-template-columns: minmax(0, 1fr); }
-    .team { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
   @media (max-width: 640px) {
     header.hero { padding-top: 36px; }
@@ -535,13 +529,7 @@
 <section id="team">
   <div class="wrap">
     <h2>Team</h2>
-    <div class="team">
-      <div class="member"><div class="name">Lingxiao Yang</div><div class="role">Terrain and material interaction; soil simulation</div></div>
-      <div class="member"><div class="name">Xirui Jiang</div><div class="role">Scene setup; simulator–backend communication; VLA adaptation and training</div></div>
-      <div class="member"><div class="name">Haoyun Pan</div><div class="role">Documentation and reporting; server maintenance</div></div>
-      <div class="member"><div class="name">Runting Zhang</div><div class="role">VLA training and evaluation</div></div>
-      <div class="member"><div class="name">Seak Pang Zou</div><div class="role">Scripted expert design; IK and control; trajectory generation</div></div>
-    </div>
+    <p class="lead" style="text-align:center;margin:0">Lingxiao Yang · Xirui Jiang · Haoyun Pan · Runting Zhang · Seak Pang Zou</p>
     <p class="caption" style="margin-top:20px">We thank Builder[x] Robotics and Shiji Liu for sponsoring and guiding the project, and
       Prof. Qianli Chen for faculty supervision.</p>
   </div>

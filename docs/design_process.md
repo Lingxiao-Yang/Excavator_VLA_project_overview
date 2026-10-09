@@ -95,7 +95,7 @@ pursued further because MuJoCo lacks granular-material support comparable to Phy
 
 | Milestone | Date | Outcomes |
 | --- | --- | --- |
-| Design Review 1 | 2026-06-08 | Problem definition, benchmarking, QFD, proposed approach (Isaac Sim, scripted expert, SmolVLA), team roles |
+| Design Review 1 | 2026-06-08 | Problem definition, benchmarking, QFD, proposed approach (Isaac Sim, scripted expert, SmolVLA), project plan |
 | Design Review 2 | 2026-06-22 | Concept selection; Isaac Sim scene and simulator–backend communication operational; zero-shot SmolVLA found unusable, motivating project-specific demonstrations |
 | Design Review 3 | 2026-07-13 | Bridge and scripted expert complete; first three-camera dataset; fine-tuning under way; timing and particle-count studies |
 | Final report | 2026-08-03 | All engineering specifications verified |

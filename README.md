@@ -163,13 +163,7 @@ python examples/plan_one_scoop.py              # writes media/generated/plan_one
 
 ## Team
 
-| Member | Responsibility |
-| --- | --- |
-| Lingxiao Yang | Terrain and material interaction; soil simulation |
-| Xirui Jiang | Scene setup; simulator–backend communication; VLA adaptation and training |
-| Haoyun Pan | Documentation and reporting; server maintenance |
-| Runting Zhang | VLA training and evaluation |
-| Seak Pang Zou | Scripted expert design; IK and control; trajectory generation |
+Lingxiao Yang · Xirui Jiang · Haoyun Pan · Runting Zhang · Seak Pang Zou
 
 ## Acknowledgements
 
